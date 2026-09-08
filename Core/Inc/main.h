@@ -59,16 +59,16 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define RUN_LED_Pin GPIO_PIN_3
 #define RUN_LED_GPIO_Port GPIOA
-#define CH1_TX_Pin GPIO_PIN_12
-#define CH1_TX_GPIO_Port GPIOB
-#define CH2_RX_Pin GPIO_PIN_13
-#define CH2_RX_GPIO_Port GPIOB
-#define CH3_12V_Pin GPIO_PIN_14
-#define CH3_12V_GPIO_Port GPIOB
+#define CH2_Pin GPIO_PIN_13
+#define CH2_GPIO_Port GPIOB
+#define CH3_Pin GPIO_PIN_14
+#define CH3_GPIO_Port GPIOB
 #define CH4_AUX_Pin GPIO_PIN_15
 #define CH4_AUX_GPIO_Port GPIOB
-#define USB__Pin GPIO_PIN_8
-#define USB__GPIO_Port GPIOA
+#define USB_OFF_Pin GPIO_PIN_8
+#define USB_OFF_GPIO_Port GPIOA
+#define USB_VBUS_Pin GPIO_PIN_9
+#define USB_VBUS_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

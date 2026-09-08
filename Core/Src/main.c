@@ -22,7 +22,11 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 #include "app_monitor.h"
+#include "app_state_machine.h"      /* 추가 필요 */
+#include "app_frontend_link.h"      /* 추가 필요 */
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,6 +47,8 @@
 /* Private variables ---------------------------------------------------------*/
 IWDG_HandleTypeDef hiwdg;
 
+UART_HandleTypeDef huart1;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -51,6 +57,7 @@ IWDG_HandleTypeDef hiwdg;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_IWDG_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -91,8 +98,11 @@ int main(void)
   MX_GPIO_Init();
   MX_USB_DEVICE_Init();
   MX_IWDG_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  FrontendLink_Init();      /* 추가 필요 - UART 수신 시작 */
+  StateMachine_Init();      /* 추가 필요 - 상태판정 초기화 */
   AppMonitor_Init();
 
   /* USER CODE END 2 */
@@ -102,7 +112,8 @@ int main(void)
   while (1)
   {
 
-	  AppMonitor_Poll();
+	StateMachine_Poll();
+	AppMonitor_Poll();
 
     /* USER CODE END WHILE */
 
@@ -187,6 +198,39 @@ static void MX_IWDG_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 38400;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -204,20 +248,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, RUN_LED_Pin|USB__Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, RUN_LED_Pin|USB_OFF_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : RUN_LED_Pin USB__Pin */
-  GPIO_InitStruct.Pin = RUN_LED_Pin|USB__Pin;
+  /*Configure GPIO pins : RUN_LED_Pin USB_OFF_Pin */
+  GPIO_InitStruct.Pin = RUN_LED_Pin|USB_OFF_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : CH1_TX_Pin CH2_RX_Pin CH3_12V_Pin CH4_AUX_Pin */
-  GPIO_InitStruct.Pin = CH1_TX_Pin|CH2_RX_Pin|CH3_12V_Pin|CH4_AUX_Pin;
+  /*Configure GPIO pins : CH2_Pin CH3_Pin CH4_AUX_Pin */
+  GPIO_InitStruct.Pin = CH2_Pin|CH3_Pin|CH4_AUX_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : USB_VBUS_Pin */
+  GPIO_InitStruct.Pin = USB_VBUS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(USB_VBUS_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
