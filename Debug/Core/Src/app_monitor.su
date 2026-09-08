@@ -1,0 +1,15 @@
+../Core/Src/app_monitor.c:85:6:AppMonitor_Init	8	static
+../Core/Src/app_monitor.c:113:6:AppMonitor_Tick1ms	16	static
+../Core/Src/app_monitor.c:160:6:AppMonitor_UsbRxHandler	24	static
+../Core/Src/app_monitor.c:169:6:AppMonitor_Poll	8	static
+../Core/Src/app_monitor.c:190:13:GPIO_Config	32	static
+../Core/Src/app_monitor.c:222:13:Channel_Init	32	static
+../Core/Src/app_monitor.c:235:13:Channel_Sample1ms	24	static
+../Core/Src/app_monitor.c:262:13:UpdateInterphoneState	24	static
+../Core/Src/app_monitor.c:290:13:Led_SetPhysical	16	static
+../Core/Src/app_monitor.c:295:13:Led_GetPatternForState	24	static
+../Core/Src/app_monitor.c:312:13:Led_Tick1ms	16	static
+../Core/Src/app_monitor.c:369:13:SendStateFrame	24	static
+../Core/Src/app_monitor.c:400:13:ParseIncomingByte	16	static
+../Core/Src/app_monitor.c:447:13:StartUsbSoftDisconnect	8	static
+../Core/Src/app_monitor.c:458:13:ServiceUsbSoftDisconnect	8	static
