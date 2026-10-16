@@ -1,6 +1,6 @@
 /**
  * @file    app_monitor.c
- * @brief   구현부 (v2 - StateMachine 연동, PA9 USB 5V 감지 반영)
+ * @brief   구현부 (v3 - 16바이트 ASCII 응답 프레임, v2: StateMachine 연동/PA9 USB 5V 감지)
  *
  * 연동 방법:
  *   1) main.c 에 #include "app_monitor.h" 추가
@@ -173,6 +173,7 @@ static void Led_GetPatternForState(uint16_t *on_ms, uint16_t *off_ms)
         case IP_STATE_TALKING:
             *on_ms = LED_TALK_ON_MS;  *off_ms = LED_TALK_OFF_MS;  break;
         case IP_STATE_POWERFAIL:
+        case IP_STATE_LINKFAIL:
         default:
             *on_ms = LED_FAULT_ON_MS; *off_ms = LED_FAULT_OFF_MS; break;
     }
@@ -228,48 +229,44 @@ static void Led_Tick1ms(void)
 }
 
 /* ========================================================================
- * 내부 구현 - USB 응답 프레임 생성 (StateMachine 판정 결과를 CH1~4로 역변환)
+ * 내부 구현 - USB 응답 프레임 생성 (v1.5, 16바이트 ASCII)
  *
- * 기존 Android/Windows 호스트 파싱 로직(전원단절>통화>호출>대기)과의
- * 호환을 위해, 판정된 ip_state_t를 그 로직이 정확히 같은 결과로
- * 복원되도록 CH1~3 조합으로 인코딩한다.
+ *   STX | 상태 | Tx(4) | Rx(4) | Power(4) | CR LF
+ *
+ * 값은 StateMachine_GetResult()로 한 번에 복사해 일관성을 보장한다.
+ * (이 함수는 USB 수신 인터럽트 문맥에서 호출될 수 있다.)
  * ==================================================================== */
+
+/* v(0~9999)를 높은 자릿수부터 4자리 ASCII 10진수로 기록 */
+static void PutDec4(uint8_t *p, uint16_t v)
+{
+    if (v > 9999u)
+    {
+        v = 9999u;
+    }
+    p[3] = (uint8_t)('0' + (v % 10u)); v /= 10u;
+    p[2] = (uint8_t)('0' + (v % 10u)); v /= 10u;
+    p[1] = (uint8_t)('0' + (v % 10u)); v /= 10u;
+    p[0] = (uint8_t)('0' + (v % 10u));
+}
 
 static void SendStateFrame(void)
 {
-    uint8_t frame[8];
-    uint8_t ch1, ch2, ch3;
-    const uint8_t ch4 = 0; /* 하드웨어 고정 스페어, 항상 Low */
+    /* static: CDC_Transmit_FS는 비동기 전송이므로 호출 후에도 버퍼가 유효해야 안전하다 */
+    static uint8_t frame[RESP_FRAME_LEN];
+    sm_result_t r;
 
-    switch (StateMachine_GetState())
-    {
-        case IP_STATE_POWERFAIL:
-            ch3 = 0; ch1 = 0; ch2 = 0;
-            break;
-        case IP_STATE_TALKING:
-            ch3 = 1; ch1 = 1; ch2 = 1; /* ch2는 호스트 디코드상 don't-care */
-            break;
-        case IP_STATE_RINGING:
-            ch3 = 1; ch1 = 0; ch2 = 0;
-            break;
-        case IP_STATE_IDLE:
-        default:
-            ch3 = 1; ch1 = 0; ch2 = 1;
-            break;
-    }
+    StateMachine_GetResult(&r);
 
-    uint8_t sum_index = (uint8_t)((ch1 ? 1 : 0) + (ch2 ? 2 : 0) + (ch3 ? 3 : 0) + (ch4 ? 4 : 0));
+    frame[0]  = FRAME_STX;
+    frame[1]  = (uint8_t)('0' + (uint8_t)r.state);
+    PutDec4(&frame[2],  r.tx_pm);
+    PutDec4(&frame[6],  r.rx_pm);
+    PutDec4(&frame[10], r.power_dv);
+    frame[14] = FRAME_ETX1;
+    frame[15] = FRAME_ETX2;
 
-    frame[0] = FRAME_STX;
-    frame[1] = ch1 ? STATE_HIGH_BYTE : STATE_LOW_BYTE;
-    frame[2] = ch2 ? STATE_HIGH_BYTE : STATE_LOW_BYTE;
-    frame[3] = ch3 ? STATE_HIGH_BYTE : STATE_LOW_BYTE;
-    frame[4] = ch4 ? STATE_HIGH_BYTE : STATE_LOW_BYTE;
-    frame[5] = (uint8_t)(0x30 + sum_index);
-    frame[6] = FRAME_ETX1;
-    frame[7] = FRAME_ETX2;
-
-    CDC_Transmit_FS(frame, sizeof(frame));
+    CDC_Transmit_FS(frame, RESP_FRAME_LEN);
 }
 
 /* ========================================================================

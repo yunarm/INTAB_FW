@@ -2,6 +2,10 @@
  * @file    app_monitor.h
  * @brief   메인 MCU(STM32F103C8T6) - USB-CDC 프로토콜 처리 / LED 표시 / USB 연결감지
  *
+ * v3 (2026-10-16): USB 응답을 16바이트 ASCII 프레임으로 변경 (상태 + Tx‰ + Rx‰ + Power×10V)
+ *     통신_프로토콜_정리.md v1.5 참조. 판정은 MCU(app_state_machine.c)가 기본으로 수행하고,
+ *     호스트는 같은 값으로 재판정할 수 있다.
+ *
  * v2: 아키텍처 변경 반영
  *   - CH1~3 GPIO 직접폴링(비교기 방식) 제거 -> app_state_machine.c(StateMachine_GetState())가
  *     프론트엔드 UART 데이터를 분석해 넘겨주는 상태를 그대로 사용
@@ -54,7 +58,7 @@
 #define LED_RING_OFF_MS      700u
 #define LED_TALK_ON_MS       500u
 #define LED_TALK_OFF_MS      500u
-#define LED_FAULT_ON_MS       150u   /* 전원단절 */
+#define LED_FAULT_ON_MS       150u   /* 전원 이상 / 링크 이상 (공용, 임시값) */
 #define LED_FAULT_OFF_MS      150u
 
 /* LED - USB 케이블 미연결 (최우선 표시) */
@@ -69,8 +73,16 @@
 #define FRAME_ETX2                0x0A
 #define CMD_REQUEST_STATE         0x52  /* 'R' */
 
-#define STATE_HIGH_BYTE           0x31
-#define STATE_LOW_BYTE            0x30
+/* 응답 프레임 (통신_프로토콜_정리.md v1.5, 16바이트 ASCII, SUM 없음):
+ *   [0]     STX 0x0D
+ *   [1]     인터폰 상태 '0'대기 '1'호출 '2'통화 '3'전원이상 '4'링크이상
+ *   [2..5]  Tx 4자리 10진수 (Power 대비 0.1% 단위, "0000"~"1000")
+ *   [6..9]  Rx 4자리 10진수 (〃)
+ *   [10..13] Power 4자리 10진수 (전압×10, 0.1V 단위, "0000"~"0263")
+ *   [14..15] ETX 0x0D 0x0A
+ */
+#define RESP_FRAME_LEN            16u
+#define RESP_FIELD_DIGITS          4u
 
 /* 공개 API */
 void AppMonitor_Init(void);
