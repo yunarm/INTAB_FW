@@ -8,6 +8,7 @@ C_SRCS += \
 ../Core/Src/app_frontend_link.c \
 ../Core/Src/app_monitor.c \
 ../Core/Src/app_state_machine.c \
+../Core/Src/app_ver_led.c \
 ../Core/Src/main.c \
 ../Core/Src/stm32f1xx_hal_msp.c \
 ../Core/Src/stm32f1xx_it.c \
@@ -19,6 +20,7 @@ OBJS += \
 ./Core/Src/app_frontend_link.o \
 ./Core/Src/app_monitor.o \
 ./Core/Src/app_state_machine.o \
+./Core/Src/app_ver_led.o \
 ./Core/Src/main.o \
 ./Core/Src/stm32f1xx_hal_msp.o \
 ./Core/Src/stm32f1xx_it.o \
@@ -30,6 +32,7 @@ C_DEPS += \
 ./Core/Src/app_frontend_link.d \
 ./Core/Src/app_monitor.d \
 ./Core/Src/app_state_machine.d \
+./Core/Src/app_ver_led.d \
 ./Core/Src/main.d \
 ./Core/Src/stm32f1xx_hal_msp.d \
 ./Core/Src/stm32f1xx_it.d \
@@ -45,7 +48,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/app_frontend_link.cyclo ./Core/Src/app_frontend_link.d ./Core/Src/app_frontend_link.o ./Core/Src/app_frontend_link.su ./Core/Src/app_monitor.cyclo ./Core/Src/app_monitor.d ./Core/Src/app_monitor.o ./Core/Src/app_monitor.su ./Core/Src/app_state_machine.cyclo ./Core/Src/app_state_machine.d ./Core/Src/app_state_machine.o ./Core/Src/app_state_machine.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f1xx_hal_msp.cyclo ./Core/Src/stm32f1xx_hal_msp.d ./Core/Src/stm32f1xx_hal_msp.o ./Core/Src/stm32f1xx_hal_msp.su ./Core/Src/stm32f1xx_it.cyclo ./Core/Src/stm32f1xx_it.d ./Core/Src/stm32f1xx_it.o ./Core/Src/stm32f1xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f1xx.cyclo ./Core/Src/system_stm32f1xx.d ./Core/Src/system_stm32f1xx.o ./Core/Src/system_stm32f1xx.su
+	-$(RM) ./Core/Src/app_frontend_link.cyclo ./Core/Src/app_frontend_link.d ./Core/Src/app_frontend_link.o ./Core/Src/app_frontend_link.su ./Core/Src/app_monitor.cyclo ./Core/Src/app_monitor.d ./Core/Src/app_monitor.o ./Core/Src/app_monitor.su ./Core/Src/app_state_machine.cyclo ./Core/Src/app_state_machine.d ./Core/Src/app_state_machine.o ./Core/Src/app_state_machine.su ./Core/Src/app_ver_led.cyclo ./Core/Src/app_ver_led.d ./Core/Src/app_ver_led.o ./Core/Src/app_ver_led.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32f1xx_hal_msp.cyclo ./Core/Src/stm32f1xx_hal_msp.d ./Core/Src/stm32f1xx_hal_msp.o ./Core/Src/stm32f1xx_hal_msp.su ./Core/Src/stm32f1xx_it.cyclo ./Core/Src/stm32f1xx_it.d ./Core/Src/stm32f1xx_it.o ./Core/Src/stm32f1xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32f1xx.cyclo ./Core/Src/system_stm32f1xx.d ./Core/Src/system_stm32f1xx.o ./Core/Src/system_stm32f1xx.su
 
 .PHONY: clean-Core-2f-Src
 

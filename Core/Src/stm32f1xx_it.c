@@ -241,4 +241,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)   /* 추가 필요 */
 {
     FrontendLink_OnByteReceived(huart);
 }
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)   /* 오류 후 수신 재개 */
+{
+    FrontendLink_OnError(huart);
+}
 /* USER CODE END 1 */

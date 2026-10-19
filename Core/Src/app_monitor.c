@@ -14,6 +14,7 @@
 
 #include "app_monitor.h"
 #include "app_state_machine.h"
+#include "app_ver_led.h"
 #include "usbd_cdc_if.h"   /* CDC_Transmit_FS() */
 
 extern IWDG_HandleTypeDef hiwdg;
@@ -35,7 +36,7 @@ typedef enum { LED_PHASE_BOOT, LED_PHASE_NORMAL } led_phase_t;
 static led_phase_t s_led_phase = LED_PHASE_BOOT;
 static uint8_t     s_led_on = 0;
 static uint16_t    s_led_remain_ms = 0;
-static uint8_t     s_led_boot_blink_done = 0;
+static uint8_t     s_led_ready = 0;   /* AppMonitor_Init 완료 전 SysTick 틱 무시 */
 
 /* ------------------------------------------------------------------------ */
 static void GPIO_Config(void);
@@ -65,10 +66,11 @@ void AppMonitor_Init(void)
 
     /* LED 초기 상태: 부팅 점멸 시작 */
     s_led_phase = LED_PHASE_BOOT;
-    s_led_boot_blink_done = 0;
-    s_led_on = 1;
-    s_led_remain_ms = LED_BOOT_HALF_PERIOD_MS;
-    Led_SetPhysical(1);
+    s_led_on = 0;
+    s_led_remain_ms = 0;
+    Led_SetPhysical(0);
+    VerLed_Start(1u);          /* 1ms 틱 기준 버전 표시 시작 */
+    s_led_ready = 1;
 }
 
 /* 1ms 주기 호출 - LED, USB 소프트 디스커넥트 타이머만 처리 (가벼운 작업만) */
@@ -89,6 +91,7 @@ void AppMonitor_UsbRxHandler(uint8_t *buf, uint32_t len)
 /* main 루프에서 반복 호출 */
 void AppMonitor_Poll(void)
 {
+volatile uint32_t last_tick_ms;	// 20261019
 #ifdef HAL_IWDG_MODULE_ENABLED
     HAL_IWDG_Refresh(&hiwdg);
 #endif
@@ -103,9 +106,10 @@ void AppMonitor_Poll(void)
         return;
     }
 
+	last_tick_ms = s_last_request_tick_ms;	// 20261019
     if (!s_disconnect_in_progress)
     {
-        if ((HAL_GetTick() - s_last_request_tick_ms) >= REQUEST_TIMEOUT_MS)
+        if ((HAL_GetTick() - last_tick_ms) >= REQUEST_TIMEOUT_MS)
         {
             StartUsbSoftDisconnect();
         }
@@ -181,43 +185,38 @@ static void Led_GetPatternForState(uint16_t *on_ms, uint16_t *off_ms)
 
 static void Led_Tick1ms(void)
 {
-    if (s_led_remain_ms > 0)
+    if (!s_led_ready)
     {
-        s_led_remain_ms--;
         return;
     }
 
     if (s_led_phase == LED_PHASE_BOOT)
     {
-        if (s_led_on)
+        /* 부팅 직후: 펌웨어 버전 표시 (2s OFF, Major, 1s OFF, Minor, 1s OFF) */
+        uint8_t v = VerLed_Tick();
+        if (v == VERLED_DONE)
         {
-            s_led_on = 0;
-            Led_SetPhysical(0);
-            s_led_remain_ms = LED_BOOT_HALF_PERIOD_MS;
+            /* 표시 종료 -> 평상시(RUN) 패턴 시작 (ON부터) */
+            uint16_t on_ms, off_ms;
+            s_led_phase = LED_PHASE_NORMAL;
+            s_led_on = 1;
+            Led_SetPhysical(1);
+            Led_GetPatternForState(&on_ms, &off_ms);
+            s_led_remain_ms = on_ms;
         }
         else
         {
-            s_led_boot_blink_done++;
-            if (s_led_boot_blink_done >= LED_BOOT_BLINK_COUNT)
-            {
-                s_led_phase = LED_PHASE_NORMAL;
-                s_led_on = 1;
-                Led_SetPhysical(1);
-                {
-                    uint16_t on_ms, off_ms;
-                    Led_GetPatternForState(&on_ms, &off_ms);
-                    s_led_remain_ms = on_ms;
-                }
-            }
-            else
-            {
-                s_led_on = 1;
-                Led_SetPhysical(1);
-                s_led_remain_ms = LED_BOOT_HALF_PERIOD_MS;
-            }
+            Led_SetPhysical(v == VERLED_ON);
         }
+        return;
     }
-    else /* LED_PHASE_NORMAL */
+
+    /* LED_PHASE_NORMAL */
+    if (s_led_remain_ms > 0)
+    {
+        s_led_remain_ms--;
+        return;
+    }
     {
         uint16_t on_ms, off_ms;
         Led_GetPatternForState(&on_ms, &off_ms);

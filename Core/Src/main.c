@@ -65,6 +65,40 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/* ---- 워치독 / 리셋 원인 (2026-10-19) ------------------------------------------
+ * g_reset_cause : 부팅 직후 RCC 리셋 플래그를 비트마스크로 저장 (디버거로 확인용)
+ *   bit0 IWDG / bit1 소프트웨어(NVIC_SystemReset) / bit2 전원(POR) / bit3 NRST 핀
+ *   bit4 WWDG / bit5 저전력.   전원 투입 시에는 전원+핀 비트가 함께 서는 것이 정상.
+ * Wdg_EarlyStart() : HAL_Init() 직후(클럭 설정 이전)에 호출한다.
+ *   - HSE 기동 실패 등으로 Error_Handler()에 갇혀도 IWDG가 리셋시키도록 가장 먼저 시작
+ *   - 디버거로 정지 중에는 IWDG도 정지시켜 브레이크포인트에서 리셋되지 않게 함
+ *   - 아래 MX_IWDG_Init()은 이후 CubeMX 생성 순서에서 한 번 더 호출되지만 같은 설정의 재초기화라 무해
+ */
+#define RSTCAUSE_IWDG   0x01u
+#define RSTCAUSE_SOFT   0x02u
+#define RSTCAUSE_POWER  0x04u
+#define RSTCAUSE_PIN    0x08u
+#define RSTCAUSE_WWDG   0x10u
+#define RSTCAUSE_LPWR   0x20u
+
+volatile uint8_t g_reset_cause = 0;
+
+static void Wdg_EarlyStart(void)
+{
+    uint8_t c = 0;
+    if (__HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST))  { c |= RSTCAUSE_IWDG; }
+    if (__HAL_RCC_GET_FLAG(RCC_FLAG_SFTRST))  { c |= RSTCAUSE_SOFT; }
+    if (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST))  { c |= RSTCAUSE_POWER; }
+    if (__HAL_RCC_GET_FLAG(RCC_FLAG_PINRST))  { c |= RSTCAUSE_PIN; }
+    if (__HAL_RCC_GET_FLAG(RCC_FLAG_WWDGRST))  { c |= RSTCAUSE_WWDG; }
+    if (__HAL_RCC_GET_FLAG(RCC_FLAG_LPWRRST))  { c |= RSTCAUSE_LPWR; }
+    g_reset_cause = c;
+    __HAL_RCC_CLEAR_RESET_FLAGS();
+
+    __HAL_DBGMCU_FREEZE_IWDG();
+    MX_IWDG_Init();
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -84,6 +118,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+  Wdg_EarlyStart();   /* 클럭 설정보다 먼저 워치독 시작 (초기 정지 복구) */
 
   /* USER CODE END Init */
 
@@ -286,6 +321,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+  /* IWDG가 이미 동작 중이므로, 갱신하지 않는 이 루프는 워치독 리셋으로 복구된다. */
   __disable_irq();
   while (1)
   {

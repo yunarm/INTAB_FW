@@ -11,7 +11,13 @@
  *            FrontendLink_OnByteReceived(huart);
  *        }
  *      (다른 UART 콜백과 함께 쓰는 경우, huart->Instance 로 분기 필요)
- *   4) 상태 판정 로직(추후 작성)에서는 FrontendLink_GetSnapshot() 또는
+ *   3-1) 같은 파일에 오류 복구 콜백도 추가 (v1.1, 2026-10-16):
+ *        void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+ *        {
+ *            FrontendLink_OnError(huart);
+ *        }
+ *      오버런이 나면 HAL이 수신을 중단하고 스스로 재개하지 않기 때문에 필수.
+ *   4) 상태 판정 로직(app_state_machine.c)에서는 FrontendLink_GetSnapshot() 또는
  *      FrontendLink_IsStale() 로 최신 데이터를 읽어가면 됨
  */
 
@@ -145,6 +151,30 @@ void FrontendLink_OnByteReceived(UART_HandleTypeDef *huart)
     }
 
     RearmReceive();
+}
+
+/* USART1 오류(HAL_UART_ErrorCallback)에서 호출됨.
+ *
+ * HAL_UART_IRQHandler 동작 (stm32f1xx_hal_uart.c):
+ *   - 오버런(ORE): "blocking error"로 보고 UART_EndRxTransfer()로 수신을 중단(RxState=READY,
+ *     RXNE/PE/ERR 인터럽트 끔) 한 뒤 ErrorCallback만 호출한다 → 여기서 다시 걸어주지 않으면 영구 정지.
+ *   - 패리티/노이즈/프레이밍: "non-blocking error"로 수신은 계속된다(RxState=BUSY_RX).
+ *     이 경우 아래 HAL_UART_Receive_IT()는 HAL_BUSY를 반환할 뿐 아무 영향이 없다.
+ * 어느 경우든 진행 중이던 프레임은 믿을 수 없으므로 파서를 헤더 탐색 상태로 되돌린다. */
+void FrontendLink_OnError(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance != huart1.Instance)
+    {
+        return;
+    }
+
+    OnFrameError();                        /* 진단용 오류 카운트 */
+    if ((huart->ErrorCode & HAL_UART_ERROR_ORE) != 0u)
+    {
+        __HAL_UART_CLEAR_OREFLAG(huart);   /* SR→DR 읽기로 ORE 플래그 해소 (재무장 직후 오류 인터럽트 재진입 방지) */
+    }
+    ResetParser();
+    RearmReceive();                        /* 수신 중단 상태였다면 재개, 진행 중이면 HAL_BUSY로 무시됨 */
 }
 
 void FrontendLink_GetSnapshot(frontend_data_t *out)

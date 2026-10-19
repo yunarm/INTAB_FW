@@ -11,3 +11,4 @@
 ../Core/Src/stm32f1xx_it.c:223:6:USART1_IRQHandler	1
 ../Core/Src/stm32f1xx_it.c:235:6:HAL_SYSTICK_Callback	1
 ../Core/Src/stm32f1xx_it.c:240:6:HAL_UART_RxCpltCallback	1
+../Core/Src/stm32f1xx_it.c:245:6:HAL_UART_ErrorCallback	1

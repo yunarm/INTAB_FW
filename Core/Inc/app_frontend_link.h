@@ -47,6 +47,12 @@ void FrontendLink_Init(void);                 /* main()에서 1회 호출 - UART
 /* USART1의 HAL_UART_RxCpltCallback에서 호출 (stm32f1xx_it.c 또는 별도 콜백 파일에서 연결) */
 void FrontendLink_OnByteReceived(UART_HandleTypeDef *huart);
 
+/* USART1의 HAL_UART_ErrorCallback에서 호출 (stm32f1xx_it.c 등에서 연결).
+ * 오버런(ORE) 등으로 HAL이 수신을 중단(abort)하면 스스로 재개하지 않으므로,
+ * 여기서 오류 플래그를 지우고 파서를 초기화한 뒤 1바이트 수신을 다시 건다.
+ * (이 호출이 없으면 한 번의 오버런으로 프론트엔드 수신이 영구히 멈춘다) */
+void FrontendLink_OnError(UART_HandleTypeDef *huart);
+
 /* 최신 데이터의 스냅샷을 out에 복사 (인터럽트와의 경합 없이 안전하게 읽기 위함) */
 void FrontendLink_GetSnapshot(frontend_data_t *out);
 

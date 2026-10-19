@@ -47,9 +47,7 @@
 #define REQUEST_TIMEOUT_MS      10000u  /* 무응답 시 USB 재연결 시뮬레이션 타임아웃 */
 #define USB_DISCONNECT_HOLD_MS   3000u  /* 소프트 디스커넥트 유지 시간 */
 
-/* LED - 부팅 표시 (0.7초 주기 3회 점멸) */
-#define LED_BOOT_HALF_PERIOD_MS   350u
-#define LED_BOOT_BLINK_COUNT        3u
+/* LED - 부팅 직후 펌웨어 버전 표시: app_ver_led.h / fw_version.h 참조 */
 
 /* LED - 인터폰 상태별 점멸 패턴 */
 #define LED_IDLE_ON_MS      1000u
